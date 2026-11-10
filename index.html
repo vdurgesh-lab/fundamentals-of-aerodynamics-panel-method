@@ -138,7 +138,7 @@ a { color: var(--flow) }
   </div>
   <footer>
     <p>Every number and curve here comes from a panel solver running in this page. Its 8-panel results reproduce Anderson's Example 3.19, including the influence values and the λ table.</p>
-    <p>Step 9 goes beyond §3.17 and follows the vortex panel idea in the <a href="https://www.youtube.com/watch?v=AGVG2K6R9GA" target="_blank" rel="noopener">Lecture 11 video</a>. Its solver lets γ vary linearly along each panel, because constant-strength vortex panels give noisy surface speeds.</p>
+    <p>Step 9 goes beyond §3.17 and introduces vortex panels. Its solver lets γ vary linearly along each panel, because constant-strength vortex panels give noisy surface speeds.</p>
     <p>Keys: Space plays or pauses. Left and right arrows change step.</p>
     <p><strong>For classroom teaching only.</strong> Prepared for the Fundamentals of Aerodynamics class lecture on the panel method.</p>
   </footer>
@@ -481,7 +481,7 @@ function drawSystem(t, m) {
   g.globalAlpha = 1;
 }
 /* Source credit, small, in the bottom-right corner of the stage */
-const CREDIT = ["Sources: J. D. Anderson, Fundamentals of Aerodynamics, §3.17, Example 3.19", "Prof. Van Buren, Aerodynamics Lecture 11 (YouTube video)"];
+const CREDIT = ["Source: J. D. Anderson, Fundamentals of Aerodynamics, §3.17, Example 3.19"];
 const STRIP = 28;
 function drawCredit() {
   const size = clamp(W / 85, 9, 11), lh = size * 1.25;

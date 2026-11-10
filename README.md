@@ -40,12 +40,11 @@ and the table of source strengths.
 - The page works in any modern browser, on a projector, laptop or phone, in light or dark mode.
 - To run it offline, download `index.html` and open it in a browser.
 
-## Sources
+## Source
 
 - J. D. Anderson, Jr., *Fundamentals of Aerodynamics*, McGraw-Hill, Section 3.17 and Example 3.19.
-- Prof. Van Buren, Aerodynamics Lecture 11 (video): https://www.youtube.com/watch?v=AGVG2K6R9GA
 
-No text or figures are reproduced from these sources. Equation numbers refer to Anderson so
+No text or figures are reproduced from this source. Equation numbers refer to Anderson so
 students can follow along in the textbook.
 
 ## Terms of use
