@@ -1,0 +1,1167 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Panel Method Animation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+<style>
+/* Layout: a wind-tunnel test section (the stage) with a run sheet beside it. Colours carry meaning: the same hue means the same quantity in the drawing and in the equations. */
+:root {
+  --bg: #e9eef2; --sheet: #f6f8fa; --stage: #fbfcfd; --ink: #13212f; --muted: #52657a; --line: #c5d0da; --bodyfill: #dfe6ec;
+  --flow: #2c62a8; --source: #c8460f; --sink: #087f8c; --hot: #b0186f; --vortex: #6a45c2; --ok: #27794b;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --text: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --math: "STIX Two Text", "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d141b; --sheet: #141d26; --stage: #0a1016; --ink: #e5ecf2; --muted: #95a6b7; --line: #2b3a48; --bodyfill: #223040;
+  --flow: #7fb2f0; --source: #f68d4f; --sink: #3fcbd9; --hot: #f26cb6; --vortex: #b4a0f7; --ok: #66cc90; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d141b; --sheet: #141d26; --stage: #0a1016; --ink: #e5ecf2; --muted: #95a6b7; --line: #2b3a48; --bodyfill: #223040;
+  --flow: #7fb2f0; --source: #f68d4f; --sink: #3fcbd9; --hot: #f26cb6; --vortex: #b4a0f7; --ok: #66cc90; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--text); padding-block: 18px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; justify-content: space-between }
+h1 { font: 600 clamp(26px, 3.2vw, 36px)/1.1 var(--display); margin: 0; letter-spacing: .005em; text-wrap: balance }
+.eyebrow { font: 500 13px var(--mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 4px }
+.eq .sysbox { overflow-x: auto; min-width: 0 }
+.eq table.sys { border-collapse: collapse; font: 400 13px/1.45 var(--mono); white-space: nowrap }
+.eq table.sys tr.r2 td { padding-bottom: 7px }
+.eq table.sys td { padding: 1px 5px 1px 0 }
+.eq table.sys td.n { color: var(--muted); padding-right: 9px }
+.eq table.sys i { font: italic 400 15px var(--math) }
+.eq .syshead { font: 500 14px/1.4 var(--text); color: var(--ink); margin: 4px 0 0 }
+.eq > div.sysbox { display: block }
+nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px }
+nav button { flex: 1 0 auto; border: 0; background: transparent; color: var(--muted); font: 500 14px/1.2 var(--text); padding: 8px 10px 7px; cursor: pointer; border-bottom: 3px solid var(--line); text-align: left; white-space: nowrap }
+nav button b { font: 500 13px var(--mono); margin-right: 5px }
+nav button:hover { color: var(--ink) }
+nav button.done { border-bottom-color: var(--flow) }
+nav button.on { color: var(--ink); border-bottom-color: var(--source); font-weight: 600 }
+.main { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 14px; align-items: start }
+.tunnel { display: grid; gap: 8px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px) }
+#stageBox { background: var(--stage); border: 1px solid var(--line); min-width: 0 }
+canvas { display: block; width: 100%; height: 100% }
+.deck { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.deck button { border: 1px solid var(--line); background: var(--sheet); color: var(--ink); font: 500 14px var(--text); padding: 7px 12px; cursor: pointer; min-height: 38px }
+.deck button:hover { border-color: var(--flow) }
+#play { background: var(--flow); border-color: var(--flow); color: var(--stage); min-width: 84px; font-weight: 600 }
+#scrub { flex: 1 1 140px; min-width: 100px; accent-color: var(--flow) }
+.deck label { color: var(--muted); font-size: 14px; display: inline-flex; align-items: center; gap: 5px }
+select { background: var(--sheet); color: var(--ink); border: 1px solid var(--line); font: 400 14px var(--text); padding: 5px }
+.notes { background: var(--sheet); border: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 12px; min-width: 0 }
+.count { font: 500 13px var(--mono); color: var(--muted); letter-spacing: .03em }
+h2 { font: 600 26px/1.12 var(--display); margin: 2px 0 0; text-wrap: balance }
+ol.beats { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px }
+ol.beats button { all: unset; display: block; cursor: pointer; padding: 6px 9px; border-left: 3px solid transparent; color: var(--muted); line-height: 1.42; box-sizing: border-box; width: 100% }
+ol.beats button.past { color: var(--ink) }
+ol.beats button.now { color: var(--ink); border-left-color: var(--source); background: var(--bg); font-weight: 500 }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--source); outline-offset: 2px }
+.eq { font: 400 18px/1.55 var(--math); border-top: 1px solid var(--line); padding-top: 10px; overflow-x: auto; display: grid; gap: 7px }
+.eq > div { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; white-space: nowrap }
+.eq small { font: 400 13px var(--mono); color: var(--muted) }
+.eq i { font-style: italic }
+.f { color: var(--flow) } .s { color: var(--source) } .k { color: var(--sink) } .h { color: var(--hot) } .v { color: var(--vortex) }
+details { border-top: 1px solid var(--line); padding-top: 9px; font-size: 15px }
+summary { cursor: pointer; font-weight: 600 }
+details p { margin: 6px 0 0 }
+.lab { display: grid; gap: 10px }
+.lab label { display: grid; gap: 3px; font-size: 14px; color: var(--muted) }
+.lab output { color: var(--ink); font: 500 14px var(--mono) }
+.lab input[type=range] { width: 100%; accent-color: var(--flow) }
+.lab select { width: 100% }
+.rd { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; border-top: 1px solid var(--line); padding-top: 10px }
+.rd div span { display: block; color: var(--muted); font-size: 13px }
+.rd div strong { font: 500 17px var(--mono); font-variant-numeric: tabular-nums }
+.recipe { margin: 0; padding-left: 20px; font-size: 15px; display: grid; gap: 3px }
+.hint { font-size: 14px; color: var(--muted); margin: 0 }
+footer { color: var(--muted); font-size: 14px; max-width: 80ch }
+footer p { margin: 0 0 6px }
+a { color: var(--flow) }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%) }
+@media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr) } .tunnel { position: static } nav button { flex: 0 0 auto } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Aerodynamics · Class lecture</p>
+      <h1>The panel method, one step at a time</h1>
+    </div>
+  </header>
+  <nav id="nav" aria-label="Steps"></nav>
+  <div class="main">
+    <div class="tunnel">
+      <div id="stageBox"><canvas id="c" role="img" aria-label="Panel method animation"></canvas></div>
+      <div class="deck" id="deck">
+        <button id="prev" type="button">Back</button>
+        <button id="play" type="button">Play</button>
+        <button id="next" type="button">Next</button>
+        <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in this step">
+        <label for="speed">Speed
+          <select id="speed"><option value=".6">Slow</option><option value="1" selected>Normal</option><option value="1.5">Fast</option></select>
+        </label>
+        <label><input id="auto" type="checkbox" checked> Continue to next step</label>
+      </div>
+    </div>
+    <section class="notes" aria-live="off">
+      <div>
+        <div class="count" id="count"></div>
+        <h2 id="stitle"></h2>
+      </div>
+      <ol class="beats" id="beats"></ol>
+      <div class="lab" id="lab" hidden>
+        <label for="shape">Shape
+          <select id="shape">
+            <option value="cyl">Circular cylinder</option>
+            <option value="ell">Ellipse, 3:1</option>
+            <option value="0012" selected>NACA 0012 airfoil</option>
+            <option value="2412">NACA 2412 airfoil (cambered)</option>
+          </select></label>
+        <label for="method">Panel type
+          <select id="method">
+            <option value="src">Source panels (no lift)</option>
+            <option value="vor" selected>Vortex panels (lift)</option>
+          </select></label>
+        <label for="pn">Number of panels: <output id="pnO"></output>
+          <input id="pn" type="range" min="4" max="100" step="2" value="40"></label>
+        <label for="pa">Angle of attack α: <output id="paO"></output>
+          <input id="pa" type="range" min="-10" max="12" step="1" value="5"></label>
+        <p class="hint" id="labHint"></p>
+        <div class="rd" id="rd"></div>
+      </div>
+      <div class="eq" id="eq"></div>
+      <details id="think"><summary id="thinkQ"></summary><p id="thinkA"></p></details>
+    </section>
+  </div>
+  <footer>
+    <p>Every number and curve here comes from a panel solver running in this page. Its 8-panel results reproduce Anderson's Example 3.19, including the influence values and the λ table.</p>
+    <p>Step 9 goes beyond §3.17 and follows the vortex panel idea in the <a href="https://www.youtube.com/watch?v=AGVG2K6R9GA" target="_blank" rel="noopener">Lecture 11 video</a>. Its solver lets γ vary linearly along each panel, because constant-strength vortex panels give noisy surface speeds.</p>
+    <p>Keys: Space plays or pauses. Left and right arrows change step.</p>
+    <p><strong>For classroom teaching only.</strong> Prepared for the Fundamentals of Aerodynamics class lecture on the panel method.</p>
+  </footer>
+  <div class="sr" id="live" aria-live="polite"></div>
+</div>
+
+<script>
+"use strict";
+/* ---------- solver ---------- */
+const PI2 = 2 * Math.PI, rad = d => d * Math.PI / 180;
+function mkBody(X, Y) {
+  const n = X.length - 1, b = { n, X, Y, S: [], tx: [], ty: [], nx: [], ny: [], xc: [], yc: [] };
+  for (let i = 0; i < n; i++) {
+    const dx = X[i + 1] - X[i], dy = Y[i + 1] - Y[i], s = Math.hypot(dx, dy);
+    b.S.push(s); b.tx.push(dx / s); b.ty.push(dy / s); b.nx.push(-dy / s); b.ny.push(dx / s);
+    b.xc.push((X[i] + X[i + 1]) / 2); b.yc.push((Y[i] + Y[i + 1]) / 2);
+  }
+  return b;
+}
+/* Panels run clockwise; panel 1 faces upstream, as in Anderson Fig. 3.41 */
+function ellipse(n, a, c) {
+  const X = [], Y = [];
+  for (let i = 0; i <= n; i++) { const th = Math.PI + Math.PI / n - i * PI2 / n; X.push(a * Math.cos(th)); Y.push(c * Math.sin(th)); }
+  X[n] = X[0]; Y[n] = Y[0];
+  return mkBody(X, Y);
+}
+/* NACA 4-digit, chord 3 centred on the origin, cosine spacing, trailing edge first, clockwise */
+function naca(n, m, p, t) {
+  const k = Math.round(n / 2), lo = [], up = [];
+  for (let i = 0; i <= k; i++) {
+    const x = .5 * (1 + Math.cos(Math.PI * i / k));
+    const yt = 5 * t * (.2969 * Math.sqrt(x) - .126 * x - .3516 * x * x + .2843 * x ** 3 - .1036 * x ** 4);
+    let yc = 0, dy = 0;
+    if (m > 0) {
+      if (x < p) { yc = m / p / p * (2 * p * x - x * x); dy = 2 * m / p / p * (p - x); }
+      else { yc = m / (1 - p) ** 2 * (1 - 2 * p + 2 * p * x - x * x); dy = 2 * m / (1 - p) ** 2 * (p - x); }
+    }
+    const th = Math.atan(dy);
+    lo.push([x + yt * Math.sin(th), yc - yt * Math.cos(th)]);
+    up.push([x - yt * Math.sin(th), yc + yt * Math.cos(th)]);
+  }
+  const pts = lo.concat(up.reverse().slice(1));
+  const b = mkBody(pts.map(q => 3 * q[0] - 1.5), pts.map(q => 3 * q[1]));
+  b.chord = 3; b.airfoil = true;
+  return b;
+}
+function basis(b, j, x, y) {
+  const dx = x - b.X[j], dy = y - b.Y[j], S = b.S[j];
+  const xi = dx * b.tx[j] + dy * b.ty[j];
+  let eta = dx * b.nx[j] + dy * b.ny[j];
+  if (Math.abs(eta) < 1e-11) eta = 1e-11;
+  const r1 = xi * xi + eta * eta, r2 = (xi - S) * (xi - S) + eta * eta;
+  return { xi, eta, S, L: .5 * Math.log(r1 / r2), T: Math.atan2(eta, xi - S) - Math.atan2(eta, xi) };
+}
+function gauss(A, b) {
+  const n = b.length, M = A.map((r, i) => r.concat(b[i]));
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++) { const f = M[r][c] / M[c][c]; if (f) for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  const x = new Array(n);
+  for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; }
+  return x;
+}
+function solveSource(b, aDeg) {
+  const ca = Math.cos(rad(aDeg)), sa = Math.sin(rad(aDeg)), n = b.n;
+  const An = [], At = [], rhs = [];
+  for (let i = 0; i < n; i++) {
+    An.push([]); At.push([]);
+    for (let j = 0; j < n; j++) {
+      const q = basis(b, j, b.xc[i], b.yc[i]), ul = q.L / PI2, wl = q.T / PI2;
+      const u = ul * b.tx[j] + wl * b.nx[j], v = ul * b.ty[j] + wl * b.ny[j];
+      An[i].push(u * b.nx[i] + v * b.ny[i]); At[i].push(u * b.tx[i] + v * b.ty[i]);
+    }
+    rhs.push(-(ca * b.nx[i] + sa * b.ny[i]));
+  }
+  const lam = gauss(An, rhs), Vt = [];
+  for (let i = 0; i < n; i++) { let s = ca * b.tx[i] + sa * b.ty[i]; for (let j = 0; j < n; j++) s += At[i][j] * lam[j]; Vt.push(s); }
+  let sum = 0; lam.forEach((l, j) => sum += l * b.S[j]);
+  const self = { kind: "src", b, aDeg, ca, sa, lam, Vt, An, rhs, sum, Cp: Vt.map(v => 1 - v * v), cl: 0 };
+  self.vel = (x, y, s = 1) => {
+    let u = ca, v = sa;
+    for (let j = 0; j < n; j++) {
+      const q = basis(b, j, x, y), ul = s * lam[j] * q.L / PI2, wl = s * lam[j] * q.T / PI2;
+      u += ul * b.tx[j] + wl * b.nx[j]; v += ul * b.ty[j] + wl * b.ny[j];
+    }
+    return [u, v];
+  };
+  return self;
+}
+function solveVortex(b, aDeg) {
+  const ca = Math.cos(rad(aDeg)), sa = Math.sin(rad(aDeg)), n = b.n;
+  const An = [], At = [], rhs = [];
+  for (let i = 0; i < n; i++) { An.push(new Array(n + 1).fill(0)); At.push(new Array(n + 1).fill(0)); }
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const q = basis(b, j, b.xc[i], b.yc[i]);
+      const u0 = q.L / PI2, w0 = q.T / PI2;
+      const u1 = (q.xi * q.L - q.S + q.eta * q.T) / (PI2 * q.S), w1 = (q.xi * q.T - q.eta * q.L) / (PI2 * q.S);
+      [[j, u0 - u1, w0 - w1], [j + 1, u1, w1]].forEach(([k, us, ws]) => {
+        const u = ws * b.tx[j] - us * b.nx[j], v = ws * b.ty[j] - us * b.ny[j];
+        An[i][k] += u * b.nx[i] + v * b.ny[i]; At[i][k] += u * b.tx[i] + v * b.ty[i];
+      });
+    }
+    rhs.push(-(ca * b.nx[i] + sa * b.ny[i]));
+  }
+  const K = new Array(n + 1).fill(0); K[0] = 1; K[n] = 1; An.push(K); rhs.push(0);
+  const g = gauss(An, rhs), Vt = [];
+  for (let i = 0; i < n; i++) { let s = ca * b.tx[i] + sa * b.ty[i]; for (let k = 0; k <= n; k++) s += At[i][k] * g[k]; Vt.push(s); }
+  let G = 0; for (let j = 0; j < n; j++) G += .5 * (g[j] + g[j + 1]) * b.S[j];
+  const self = { kind: "vor", b, aDeg, ca, sa, g, Vt, An, Gamma: G, Cp: Vt.map(v => 1 - v * v), cl: 2 * G / b.chord };
+  self.vel = (x, y, s = 1) => {
+    let u = ca, v = sa;
+    for (let j = 0; j < n; j++) {
+      const q = basis(b, j, x, y), a = g[j], d = g[j + 1] - g[j];
+      const us = a * q.L / PI2 + d * (q.xi * q.L - q.S + q.eta * q.T) / (PI2 * q.S);
+      const ws = a * q.T / PI2 + d * (q.xi * q.T - q.eta * q.L) / (PI2 * q.S);
+      u += s * (ws * b.tx[j] - us * b.nx[j]); v += s * (ws * b.ty[j] - us * b.ny[j]);
+    }
+    return [u, v];
+  };
+  return self;
+}
+function inside(b, x, y) {
+  let c = false;
+  for (let i = 0; i < b.n; i++) {
+    const y1 = b.Y[i], y2 = b.Y[i + 1];
+    if ((y1 > y) !== (y2 > y) && x < (b.X[i + 1] - b.X[i]) * (y - y1) / (y2 - y1) + b.X[i]) c = !c;
+  }
+  return c;
+}
+const RAKE = [.1, .28, .5, .76, 1.08, 1.5, 2.05, 2.8];
+const DT = .03;
+const lineCache = new Map();
+function lines(key, sol, s = 1) {
+  if (lineCache.has(key)) return lineCache.get(key);
+  if (lineCache.size > 260) lineCache.clear();
+  const b = sol.b, x0 = -4.4, tanA = sol.sa / sol.ca, out = [];
+  let top = 0, bot = 0;
+  for (let i = 0; i < b.n; i++) { top = Math.max(top, b.Y[i]); bot = Math.min(bot, b.Y[i]); }
+  const rake = [...RAKE.map(y => -y), ...RAKE];
+  rake.forEach(y0 => {
+    let x = x0, y = y0 + x0 * tanA;
+    const p = [x, y];
+    for (let k = 0; k < 420; k++) {
+      const a = sol.vel(x, y, s), hx = x + a[0] * DT / 2, hy = y + a[1] * DT / 2, c = sol.vel(hx, hy, s);
+      x += c[0] * DT; y += c[1] * DT;
+      if (x > 4.6 || Math.abs(y) > 5) break;
+      if (s === 1 && Math.abs(x) < 1.7 && y < top + .02 && y > bot - .02 && inside(b, x, y)) break;
+      p.push(x, y);
+    }
+    out.push(p);
+  });
+  lineCache.set(key, out);
+  return out;
+}
+
+/* ---------- fixed solutions ---------- */
+const CYL8 = ellipse(8, 1, 1), SOL8 = solveSource(CYL8, 0);
+const CYL64 = ellipse(64, 1, 1), SOL64 = solveSource(CYL64, 0);
+const FOIL40 = naca(40, 0, .4, .12), FOIL80 = naca(80, 0, .4, .12);
+const SOLF0 = solveSource(FOIL80, 0);
+const A9 = 6, SRC9 = solveSource(FOIL80, A9), VOR9 = solveVortex(FOIL80, A9);
+const BOOK = [.3765, .2662, 0, -.2662, -.3765, -.2662, 0, .2662];
+const I4 = SOL8.An[3].map(v => v * PI2);
+/* The 8 simultaneous equations of Example 3.19 (Eq. 3.153 multiplied by 2π) */
+const SUB = "₁₂₃₄₅₆₇₈";
+const SYS = SOL8.An.map((row, i) => ({
+  coef: row.map((v, j) => i === j ? "π" : (v * PI2).toFixed(4)),
+  rhs: -Math.cos(Math.atan2(CYL8.ny[i], CYL8.nx[i]))
+}));
+const fmtRhs = v => Math.abs(v) < 5e-5 ? "0" : (v < 0 ? "−" : "") + Math.abs(v).toFixed(4);
+const cell = (r, j) => `<td>${j ? "+ " : ""}${r.coef[j]}<i class="s">λ${SUB[j]}</i></td>`;
+const SYS_HTML = `<p class="syshead">All 8 equations, solved simultaneously (right side in units of 2π<i>V</i><sub>∞</sub>):</p>
+  <div class="sysbox"><table class="sys">${SYS.map((r, i) =>
+    `<tr class="r1"><td class="n">(${i + 1})</td>${[0, 1, 2, 3].map(j => cell(r, j)).join("")}<td></td></tr>` +
+    `<tr class="r2"><td></td>${[4, 5, 6, 7].map(j => cell(r, j)).join("")}<td class="f">= ${fmtRhs(r.rhs)}</td></tr>`).join("")}</table></div>`;
+
+/* ---------- drawing helpers ---------- */
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+let W = 800, H = 500, C = {};
+function readColors() {
+  const st = getComputedStyle(document.documentElement);
+  ["stage", "ink", "muted", "line", "bodyfill", "flow", "source", "sink", "hot", "vortex", "ok", "sheet"].forEach(k => C[k] = st.getPropertyValue("--" + k).trim());
+}
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const ss = (t, a, b) => { const x = clamp((t - a) / (b - a)); return x * x * (3 - 2 * x); };
+const mix = (a, b, m) => a + (b - a) * m;
+const fs = m => Math.round(clamp(W / 62, 11.5, 15) * (m || 1) * 10) / 10;
+const TXT = () => `"Barlow", Arial, sans-serif`, MATH = () => `"STIX Two Text", "Times New Roman", serif`, MONO = () => `"IBM Plex Mono", Menlo, monospace`;
+function text(s, x, y, o = {}) {
+  g.font = `${o.italic ? "italic " : ""}${o.weight || 400} ${o.size || fs()}px ${o.font || TXT()}`;
+  g.fillStyle = o.color || C.ink; g.textAlign = o.align || "left"; g.textBaseline = o.base || "middle";
+  if (o.halo) { g.lineWidth = 4; g.strokeStyle = C.stage; g.lineJoin = "round"; g.strokeText(s, x, y); }
+  g.fillText(s, x, y);
+}
+function arrow(x0, y0, x1, y1, color, w = 2.5, head = 10) {
+  const a = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0);
+  if (L < 1) return;
+  const h = Math.min(head, L * .6);
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = w; g.lineCap = "round";
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 - Math.cos(a) * h * .7, y1 - Math.sin(a) * h * .7); g.stroke();
+  g.beginPath(); g.moveTo(x1, y1);
+  g.lineTo(x1 - h * Math.cos(a - .42), y1 - h * Math.sin(a - .42));
+  g.lineTo(x1 - h * Math.cos(a + .42), y1 - h * Math.sin(a + .42));
+  g.closePath(); g.fill();
+}
+function view(r, hw, hh, cx = 0, cy = 0) {
+  const k = Math.min(r.w / (2 * hw), r.h / (2 * hh));
+  return { r, k, ox: r.x + r.w / 2 - cx * k, oy: r.y + r.h / 2 + cy * k, X(x) { return this.ox + x * this.k; }, Y(y) { return this.oy - y * this.k; } };
+}
+function lerpView(a, b, m) {
+  return { r: a.r, k: mix(a.k, b.k, m), ox: mix(a.ox, b.ox, m), oy: mix(a.oy, b.oy, m), X(x) { return this.ox + x * this.k; }, Y(y) { return this.oy - y * this.k; } };
+}
+function split(frac) {
+  const pad = 10;
+  if (W < 620) { const h = H * frac; return [{ x: pad, y: pad, w: W - 2 * pad, h: h - pad }, { x: pad, y: h + 4, w: W - 2 * pad, h: H - h - 4 - pad }]; }
+  const w = W * frac; return [{ x: pad, y: pad, w: w - pad, h: H - 2 * pad }, { x: w + 8, y: pad, w: W - w - 8 - pad, h: H - 2 * pad }];
+}
+const fullR = () => ({ x: 0, y: 0, w: W, h: H });
+function withClip(r, fn) { g.save(); g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip(); fn(); g.restore(); }
+let flowClock = 0;
+function drawFlow(v, ls, alpha, color) {
+  if (alpha <= .01) return;
+  withClip(v.r, () => {
+    const col = color || C.flow;
+    g.globalAlpha = alpha * .34; g.strokeStyle = col; g.lineWidth = 1.2; g.lineJoin = "round";
+    ls.forEach(p => { g.beginPath(); for (let i = 0; i < p.length; i += 4) { const x = v.X(p[i]), y = v.Y(p[i + 1]); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); });
+    g.globalAlpha = alpha * .95; g.fillStyle = col;
+    const gap = 15, ph = Math.floor(flowClock / DT) % gap;
+    ls.forEach(p => {
+      const m = p.length / 2;
+      for (let i = ph; i < m; i += gap) { g.beginPath(); g.arc(v.X(p[2 * i]), v.Y(p[2 * i + 1]), 2.3, 0, 7); g.fill(); }
+    });
+    g.globalAlpha = 1;
+  });
+}
+function bodyPath(v, b) { g.beginPath(); for (let i = 0; i <= b.n; i++) { const x = v.X(b.X[i]), y = v.Y(b.Y[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); }
+function drawBody(v, b, o = {}) {
+  g.globalAlpha = o.alpha ?? 1;
+  bodyPath(v, b); g.fillStyle = C.bodyfill; g.fill();
+  g.strokeStyle = o.stroke || C.ink; g.lineWidth = o.w || 1.6; g.lineJoin = "round"; g.stroke();
+  g.globalAlpha = 1;
+}
+function panelSeg(v, b, i, color, w) {
+  g.strokeStyle = color; g.lineWidth = w; g.lineCap = "round"; g.beginPath(); g.moveTo(v.X(b.X[i]), v.Y(b.Y[i])); g.lineTo(v.X(b.X[i + 1]), v.Y(b.Y[i + 1])); g.stroke();
+}
+function cpDot(v, b, i, r = 4.5, color) { g.fillStyle = color || C.hot; g.strokeStyle = C.stage; g.lineWidth = 1.5; g.beginPath(); g.arc(v.X(b.xc[i]), v.Y(b.yc[i]), r, 0, 7); g.fill(); g.stroke(); }
+function nums(v, b, off, o = {}) { for (let i = 0; i < b.n; i++) text(String(i + 1), v.X(b.xc[i] + b.nx[i] * off), v.Y(b.yc[i] + b.ny[i] * off), { align: "center", color: o.color || C.muted, weight: 500, size: fs(o.m || 1), halo: true }); }
+function vinf(v, aDeg = 0, x = null, y = null) {
+  const px = x ?? v.r.x + 14, py = y ?? v.r.y + 26, L = Math.min(62, v.k * .9);
+  arrow(px, py, px + L * Math.cos(rad(aDeg)), py - L * Math.sin(rad(aDeg)), C.flow, 3, 11);
+  text("V∞", px + L + 8, py - L * Math.sin(rad(aDeg)), { font: MATH(), italic: true, color: C.flow, size: fs(1.2), weight: 500 });
+}
+function box(x, y, rows, o = {}) {
+  g.font = `${o.weight || 500} ${o.size || fs()}px ${TXT()}`;
+  const w = Math.max(...rows.map(r => g.measureText(r[0]).width)) + 20, lh = (o.size || fs()) * 1.5, h = rows.length * lh + 10;
+  const bx = o.right ? x - w : x;
+  g.globalAlpha = o.alpha ?? 1;
+  g.fillStyle = C.sheet; g.strokeStyle = C.line; g.lineWidth = 1; g.fillRect(bx, y, w, h); g.strokeRect(bx, y, w, h);
+  rows.forEach((r, i) => text(r[0], bx + 10, y + 5 + lh * (i + .5), { color: r[1] || C.ink, weight: o.weight || 500, size: o.size }));
+  g.globalAlpha = 1;
+}
+function chart(r, o) {
+  const L = r.x + (o.padL || 44), R = r.x + r.w - 10, T = r.y + 24, B = r.y + r.h - 34;
+  const fx = x => L + (x - o.xr[0]) / (o.xr[1] - o.xr[0]) * (R - L);
+  const fy = y => o.inv ? T + (y - o.yr[0]) / (o.yr[1] - o.yr[0]) * (B - T) : B - (y - o.yr[0]) / (o.yr[1] - o.yr[0]) * (B - T);
+  g.lineWidth = 1;
+  o.yt.forEach(y => { g.strokeStyle = C.line; g.beginPath(); g.moveTo(L, fy(y)); g.lineTo(R, fy(y)); g.stroke(); text(String(y), L - 6, fy(y), { align: "right", color: C.muted, size: fs(.92), font: MONO() }); });
+  o.xt.forEach(x => { g.strokeStyle = C.line; g.beginPath(); g.moveTo(fx(x), B); g.lineTo(fx(x), B + 4); g.stroke(); text(String(x) + (o.xu || ""), fx(x), B + 13, { align: "center", color: C.muted, size: fs(.92), font: MONO() }); });
+  g.strokeStyle = C.muted; g.beginPath(); g.moveTo(L, T); g.lineTo(L, B); g.lineTo(R, B); g.stroke();
+  text(o.yl, L, r.y + 11, { font: MATH(), italic: true, color: C.ink, weight: 500, size: fs(1.05) });
+  text(o.xl, (L + R) / 2, B + 27, { align: "center", color: C.muted, size: fs(.92) });
+  return { fx, fy, L, R, T, B };
+}
+function curl(x, y, r, color, sweep = 4.6) {
+  /* clockwise arc on screen */
+  g.strokeStyle = color; g.lineWidth = 1.8; g.beginPath(); g.arc(x, y, r, -2.2, -2.2 + sweep); g.stroke();
+  const e = -2.2 + sweep, hx = x + r * Math.cos(e), hy = y + r * Math.sin(e), a = e + Math.PI / 2;
+  g.fillStyle = color; g.beginPath(); g.moveTo(hx + 5 * Math.cos(a), hy + 5 * Math.sin(a));
+  g.lineTo(hx + 4 * Math.cos(a + 2.3), hy + 4 * Math.sin(a + 2.3)); g.lineTo(hx + 4 * Math.cos(a - 2.3), hy + 4 * Math.sin(a - 2.3)); g.closePath(); g.fill();
+}
+
+function wrapText(s, x, y, maxW, o) {
+  g.font = `${o.weight || 400} ${o.size}px ${o.font || TXT()}`;
+  const words = s.split(" "), lines = []; let line = "";
+  words.forEach(w => { const t = line ? line + " " + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; });
+  lines.push(line);
+  lines.forEach((l, k) => text(l, x, y + k * o.size * 1.3, o));
+  return lines.length * o.size * 1.3;
+}
+/* The 8 simultaneous equations, written out on the stage */
+function drawSystem(t, m) {
+  const pad = 16, availW = W - 2 * pad;
+  const parts = SYS.map(r => r.coef.map((c, j) => [(j ? "+ " : "") + c, "λ" + SUB[j]]));
+  const measure = size => {
+    const wCoef = [], wLam = [];
+    g.font = `400 ${size}px ${MONO()}`; const wN = g.measureText("(8) ").width;
+    for (let j = 0; j < 8; j++) {
+      g.font = `400 ${size}px ${MONO()}`; wCoef[j] = Math.max(...parts.map(p => g.measureText(p[j][0]).width));
+      g.font = `italic 500 ${size * 1.12}px ${MATH()}`; wLam[j] = g.measureText("λ₈").width + size * .55;
+    }
+    g.font = `500 ${size}px ${MONO()}`; const wR = g.measureText("= −0.7071 · 2πV∞").width;
+    const sum = (lo, hi) => { let s = 0; for (let j = lo; j < hi; j++) s += wCoef[j] + wLam[j]; return s; };
+    return { wN, wCoef, wLam, wR, one: wN + sum(0, 8) + wR, two: wN + Math.max(sum(0, 4), sum(4, 8) + wR) };
+  };
+  let size = fs(1.35), mm = measure(size), split2 = false;
+  if (mm.one > availW) {
+    const one = size * availW / mm.one;
+    if (one >= 11) { size = Math.min(one, fs(1.35)); mm = measure(size); }
+    else { split2 = true; size = fs(1.1); mm = measure(size); if (mm.two > availW) { size *= availW / mm.two; mm = measure(size); } }
+  }
+  const rowW = split2 ? mm.two : mm.one;
+  g.globalAlpha = m;
+  let y0 = pad + fs(.7);
+  y0 += wrapText("8 equations, 8 unknowns: solve them simultaneously", pad, y0, availW, { weight: 600, size: fs(1.2) });
+  y0 += wrapText("Eq. 3.153 × 2π at each control point · unit cylinder, 8 panels (Example 3.19) · right side in units of 2πV∞", pad, y0, availW, { color: C.muted, size: fs(.86) });
+  const top = y0 + fs(.6), bottomNote = fs(W < 620 ? 3.4 : 2.2);
+  const linesPerRow = split2 ? 2 : 1, rowH = Math.min(size * 2.1, (H - top - bottomNote - 26) / (8 * linesPerRow + (split2 ? 3.5 : 0)));
+  const x0 = pad + Math.max(0, (availW - rowW) / 2);
+  for (let i = 0; i < 8; i++) {
+    const a = ss(t, 28 + i * .45, 28.7 + i * .45) * m;
+    if (a <= 0) continue;
+    g.globalAlpha = a;
+    let y = top + rowH * (i * linesPerRow + (split2 ? i * .45 : 0) + .5), x = x0;
+    text("(" + (i + 1) + ")", x, y, { font: MONO(), color: C.muted, size });
+    x += mm.wN;
+    for (let j = 0; j < 8; j++) {
+      if (split2 && j === 4) { y += rowH; x = x0 + mm.wN; }
+      const diag = i === j;
+      text(parts[i][j][0], x + mm.wCoef[j], y, { font: diag ? MATH() : MONO(), color: diag ? C.hot : C.ink, size: diag ? size * 1.15 : size, align: "right", weight: diag ? 600 : 400 });
+      text(parts[i][j][1], x + mm.wCoef[j] + size * .18, y, { font: MATH(), italic: true, color: C.source, size: size * 1.12, weight: 500 });
+      x += mm.wCoef[j] + mm.wLam[j];
+    }
+    text("= " + fmtRhs(SYS[i].rhs) + " · 2πV∞", x, y, { font: MONO(), color: C.flow, size, weight: 500 });
+  }
+  const n = ss(t, 32.5, 34) * m;
+  if (n > 0) { g.globalAlpha = n; wrapText("Each row contains every λ, so the rows cannot be solved one at a time → solve A λ = b for all 8 together", pad, H - bottomNote, availW, { color: C.ok, weight: 600, size: fs(W < 620 ? .85 : .95) }); }
+  g.globalAlpha = 1;
+}
+/* Source credit, small, in the bottom-right corner of the stage */
+const CREDIT = ["Sources: J. D. Anderson, Fundamentals of Aerodynamics, §3.17, Example 3.19", "Prof. Van Buren, Aerodynamics Lecture 11 (YouTube video)"];
+const STRIP = 28;
+function drawCredit() {
+  const size = clamp(W / 85, 9, 11), lh = size * 1.25;
+  CREDIT.forEach((s, i) => text(s, W - 8, H + STRIP - 4 - lh * (CREDIT.length - 1 - i) - lh / 2, { align: "right", color: C.muted, size }));
+}
+
+/* ---------- scenes ---------- */
+const M = (s) => `<i>${s}</i>`;
+const STEPS = [
+{ label: "The problem", title: "Air must flow around the body", dur: 21,
+  beats: [
+    [0, "Air approaches from the left at speed <i>V</i><sub>∞</sub>. A uniform flow alone knows nothing about the body."],
+    [5, "So it runs straight through the surface. Real air cannot do that. The marks show where this flow breaks the rule."],
+    [10.5, "The surface must act as a streamline: no flow through it. This is the no-penetration condition."],
+    [16, "Elementary flows solve this for a cylinder. Other shapes, like this airfoil, need a numerical recipe: the panel method."]],
+  eq: `<div><span><b>V</b> · <b>n</b> = 0 &nbsp;on the surface</span><small>goal</small></div>`,
+  think: ["Why not just add a uniform flow and a doublet for every shape?", "That superposition happens to produce a circle (and a source and sink pair gives a Rankine oval). For an arbitrary shape we do not know in advance what to add. Panel methods compute it."],
+  draw(t) {
+    const r = fullR(), v = view(r, 3.7, 2.3);
+    const m1 = ss(t, 10, 12), m2 = ss(t, 15.5, 17.5);
+    const uni = lines("u0", SOL64, 0), sol = lines("s64", SOL64, 1), af = lines("f0", SOLF0, 1);
+    drawFlow(v, uni, 1 - m1, C.flow); drawFlow(v, sol, m1 * (1 - m2)); drawFlow(v, af, m2);
+    if (m2 < 1) drawBody(v, CYL64, { alpha: 1 - m2 });
+    if (m2 > 0) drawBody(v, FOIL80, { alpha: m2 });
+    vinf(v);
+    const a = ss(t, 5, 6) * (1 - m1);
+    if (a > 0) {
+      g.globalAlpha = a; g.strokeStyle = C.hot; g.lineWidth = 2.4;
+      RAKE.slice(0, 4).forEach(y => [-y, y].forEach(yy => {
+        const x = v.X(-Math.sqrt(1 - yy * yy)), q = v.Y(yy), s = 6;
+        g.beginPath(); g.moveTo(x - s, q - s); g.lineTo(x + s, q + s); g.moveTo(x + s, q - s); g.lineTo(x - s, q + s); g.stroke();
+      }));
+      text("flow passes through the wall", v.X(0), v.Y(0), { align: "center", color: C.hot, weight: 600, size: fs(.95) });
+      g.globalAlpha = 1;
+    }
+    if (m1 > 0 && m2 < 1) {
+      g.globalAlpha = ss(t, 11, 12.5) * (1 - m2);
+      text("no flow through the surface", v.X(0), v.Y(0), { align: "center", color: C.ink, weight: 600, size: fs(.95) });
+      g.globalAlpha = 1;
+    }
+  }},
+{ label: "Source sheet", title: "Build a source sheet", dur: 27,
+  beats: [
+    [0, "Start with a single line source: one point that sends flow out in all directions."],
+    [5, "Put more sources side by side. Their outflows add together."],
+    [10, "With infinitely many weak sources you get a source sheet. Its strength per unit length is λ(<i>s</i>)."],
+    [16, "λ can change along the sheet. Positive λ pushes flow out (a source). Negative λ pulls flow in (a sink)."],
+    [21, "Wrap the sheet around the body and add <i>V</i><sub>∞</sub>. The job is to find the λ(<i>s</i>) that makes the surface a streamline."]],
+  eq: `<div><span><i>dφ</i> = <span class="s">λ</span> <i>ds</i> / 2π · ln <i>r</i></span><small>3.141</small></div>
+       <div><span><i>φ</i>(<i>x,y</i>) = ∫ <span class="s">λ</span> <i>ds</i> / 2π · ln <i>r</i></span><small>3.142</small></div>`,
+  think: ["What are the units of λ, and how do they differ from a single source strength Λ?", "Λ is volume flow per unit depth (m²/s). λ is also per unit length along the sheet, so its units are m/s, the same as a velocity."],
+  draw(t) {
+    const r = fullR(), v = view(r, 3.4, 2.1), N = 48;
+    const morph = ss(t, 21, 24);
+    const visible = t < 5 ? 1 : t < 7 ? 3 : t < 8.5 ? 7 : t < 10 ? 15 : N;
+    const lamMix = ss(t, 16, 18), lamCirc = morph;
+    const pos = u => {
+      const lx = -2.4 + 4.8 * u, th = Math.PI - u * PI2;
+      return [mix(lx, Math.cos(th), morph), mix(0, Math.sin(th), morph)];
+    };
+    const lamOf = u => mix(1, Math.cos(u * PI2), Math.max(lamMix, 0)) * 1;
+    const us = [];
+    if (visible === 1) us.push(.5); else for (let i = 0; i < visible; i++) us.push((i + .5) / visible);
+    if (visible === 1) {
+      for (let a = 0; a < 16; a++) {
+        const th = a * PI2 / 16;
+        for (let q = 0; q < 3; q++) {
+          const R = ((flowClock * .55 + q / 3) % 1) * 1.75 + .1;
+          g.globalAlpha = 1 - R / 2; g.fillStyle = C.source; g.beginPath(); g.arc(v.X(R * Math.cos(th)), v.Y(R * Math.sin(th)), 2.3, 0, 7); g.fill();
+        }
+      }
+      g.globalAlpha = 1;
+    } else {
+      us.forEach((u, i) => {
+        if (visible < N && i % 1) return;
+        const a = pos(u), b = pos(u + .002);
+        let nx = -(b[1] - a[1]), ny = b[0] - a[0], nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+        const l = lamOf(u), mag = Math.abs(l);
+        if (visible === N && i % 2) return;
+        for (const sgn of morph > .5 ? [1] : [1, -1]) {
+          for (let q = 0; q < 2; q++) {
+            const f = ((flowClock * .5 + q / 2 + i * .137) % 1);
+            const R = .05 + (l >= 0 ? f : 1 - f) * 1.15 * (.25 + mag * .75);
+            g.globalAlpha = (l >= 0 ? 1 - f : f) * clamp(mag * 1.6 + .05);
+            g.fillStyle = l >= 0 ? C.source : C.sink;
+            const nd = morph > .5 ? -sgn : sgn;
+            g.beginPath(); g.arc(v.X(a[0] + nd * nx * R), v.Y(a[1] + nd * ny * R), 2.1, 0, 7); g.fill();
+          }
+        }
+      });
+      g.globalAlpha = 1;
+    }
+    us.forEach(u => {
+      const p = pos(u), l = lamOf(u);
+      g.fillStyle = l >= 0 ? C.source : C.sink; g.globalAlpha = visible === N ? .25 + .75 * Math.abs(l) : 1;
+      g.beginPath(); g.arc(v.X(p[0]), v.Y(p[1]), visible === N ? 3.5 : 5, 0, 7); g.fill();
+    });
+    g.globalAlpha = 1;
+    if (t >= 10 && t < 21) {
+      const a = ss(t, 10.5, 12) * (1 - ss(t, 20, 21));
+      g.globalAlpha = a;
+      const x0 = v.X(.6), x1 = v.X(.95), y = v.Y(0);
+      g.strokeStyle = C.ink; g.lineWidth = 4; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+      text("ds", (x0 + x1) / 2, y + 16, { font: MATH(), italic: true, align: "center", weight: 500, halo: true });
+      const px = v.X(1.6), py = v.Y(1.35);
+      g.setLineDash([5, 4]); g.lineWidth = 1.4; g.beginPath(); g.moveTo((x0 + x1) / 2, y); g.lineTo(px, py); g.stroke(); g.setLineDash([]);
+      g.fillStyle = C.ink; g.beginPath(); g.arc(px, py, 4, 0, 7); g.fill();
+      text("P(x, y)", px + 8, py, { font: MATH(), italic: true, weight: 500, halo: true });
+      text("r", mix((x0 + x1) / 2, px, .5) - 11, mix(y, py, .5), { font: MATH(), italic: true, weight: 500, halo: true });
+      g.globalAlpha = 1;
+    }
+    if (t >= 16 && morph < .5) {
+      g.globalAlpha = lamMix * (1 - morph * 2);
+      text("λ > 0: source", v.X(-1.9), v.Y(1.55), { color: C.source, weight: 600, align: "center" });
+      text("λ < 0: sink", v.X(1.9), v.Y(1.55), { color: C.sink, weight: 600, align: "center" });
+      g.globalAlpha = 1;
+    }
+    if (morph > 0) {
+      g.globalAlpha = morph;
+      vinf(v, 0, v.X(-3.1), v.Y(0));
+      text("sheet of varying λ(s)", v.X(0), v.Y(0), { align: "center", weight: 600, size: fs(.95) });
+      g.globalAlpha = 1;
+    }
+  }},
+{ label: "Panels", title: "Divide the surface into panels", dur: 28,
+  beats: [
+    [0, "A computer cannot handle a smooth sheet, so we use straight panels. The book uses 8 for the cylinder."],
+    [6, "Each panel holds a small elemental flow with constant strength. That gives 8 unknowns: λ<sub>1</sub> to λ<sub>8</sub>."],
+    [11, "Mark the middle of each panel. This is its <span class='h'>control point</span>. The flow rule is enforced only at these points."],
+    [16, "Each panel gets an outward unit normal <b>n</b><sub><i>i</i></sub>. The angle β<sub><i>i</i></sub> runs from <i>V</i><sub>∞</sub> to <b>n</b><sub><i>i</i></sub>."],
+    [22, "Airfoils need 50 to 100 panels. Use small ones at the leading edge, where the surface curves fast."]],
+  eq: `<div><span>unknowns: <span class="s">λ</span><sub>1</sub>, <span class="s">λ</span><sub>2</sub>, … , <span class="s">λ</span><sub><i>n</i></sub></span><small>constant on each panel</small></div>
+       <div><span><i>V</i><sub>∞,<i>n</i></sub> = <i>V</i><sub>∞</sub> · <b>n</b><sub><i>i</i></sub> = <i>V</i><sub>∞</sub> cos β<sub><i>i</i></sub></span><small>3.148</small></div>`,
+  think: ["Why enforce the rule only at the midpoints?", "With n unknowns we need exactly n equations, so we use one per panel. Between control points the flow is not exactly tangent. More panels shrink that error."],
+  draw(t) {
+    const r = fullR(), v = view(r, 2.6, 1.85);
+    const fm = ss(t, 22, 24);
+    const b = CYL8;
+    if (fm < 1) {
+      g.globalAlpha = 1 - fm;
+      g.strokeStyle = C.line; g.lineWidth = 1.4; g.setLineDash([4, 4]); g.beginPath(); g.arc(v.X(0), v.Y(0), v.k, 0, 7); g.stroke(); g.setLineDash([]);
+      const shown = clamp(t / 5 * 8, 0, 8);
+      for (let i = 0; i < Math.floor(shown); i++) panelSeg(v, b, i, C.ink, 2.6);
+      if (shown < 8) { const i = Math.floor(shown), m = shown - i; g.strokeStyle = C.source; g.lineWidth = 3; g.beginPath(); g.moveTo(v.X(b.X[i]), v.Y(b.Y[i])); g.lineTo(v.X(mix(b.X[i], b.X[i + 1], m)), v.Y(mix(b.Y[i], b.Y[i + 1], m))); g.stroke(); }
+      for (let i = 0; i < Math.min(8, Math.ceil(shown)); i++) {
+        const lm = ss(t, 6, 7.2), lab = lm > .5 ? `λ${"₁₂₃₄₅₆₇₈"[i]}` : String(i + 1);
+        text(lab, v.X(b.xc[i] * 1.5), v.Y(b.yc[i] * 1.5), { align: "center", color: lm > .5 ? C.source : C.muted, weight: 500, size: fs(1.15), font: lm > .5 ? MATH() : TXT(), italic: lm > .5, halo: true });
+      }
+      const c = ss(t, 11, 12);
+      if (c > 0) for (let i = 0; i < 8; i++) if (t > 11 + i * .3) cpDot(v, b, i, 5);
+      const nm = ss(t, 16, 17.5);
+      if (nm > 0) {
+        for (let i = 0; i < 8; i++) arrow(v.X(b.xc[i]), v.Y(b.yc[i]), v.X(b.xc[i] + b.nx[i] * .3 * nm), v.Y(b.yc[i] + b.ny[i] * .3 * nm), C.ink, 1.8, 8);
+        const i = 3, cx = v.X(b.xc[i]), cy = v.Y(b.yc[i]);
+        arrow(cx, cy, cx + .62 * v.k * nm, cy, C.flow, 2.6, 10);
+        text("V∞", cx + .66 * v.k, cy, { font: MATH(), italic: true, color: C.flow, weight: 500, halo: true });
+        g.strokeStyle = C.source; g.lineWidth = 1.8; g.beginPath(); g.arc(cx, cy, 22, -Math.PI / 4 * nm, 0); g.stroke();
+        text("β₄", cx + 28, cy - 12, { font: MATH(), italic: true, color: C.source, weight: 500, halo: true });
+      }
+      g.globalAlpha = 1;
+    }
+    if (fm > 0) {
+      const u = view(r, 2.3, 1.2), f = FOIL40;
+      g.globalAlpha = fm;
+      drawBody(u, f, { w: 1 });
+      for (let i = 0; i < f.n; i++) { panelSeg(u, f, i, i % 2 ? C.ink : C.source, 2.4); }
+      for (let i = 0; i < f.n; i++) cpDot(u, f, i, 2.6);
+      text("40 panels, short near the leading edge", u.X(0), u.Y(-.62), { align: "center", color: C.muted, weight: 500 });
+      g.globalAlpha = 1;
+    }
+  }},
+{ label: "Boundary condition", title: "Apply the rule at one control point", dur: 22,
+  beats: [
+    [0, "Zoom in on panel 4, on the upper rear of the cylinder. Its normal points 45° from the flow, so β<sub>4</sub> = 45°."],
+    [5, "Split <i>V</i><sub>∞</sub> into a part along the panel and a part through the panel."],
+    [10, "The part through the panel is <span class='h'><i>V</i><sub>∞,<i>n</i></sub> = <i>V</i><sub>∞</sub> cos 45° = 0.707 <i>V</i><sub>∞</sub></span>. Alone, it would leak air through the surface."],
+    [15.5, "All the panels together must cancel this leak. They must induce <span class='k'><i>V<sub>n</sub></i> = −0.707 <i>V</i><sub>∞</sub></span> at this point."]],
+  eq: `<div><span><span class="h"><i>V</i><sub>∞,<i>n</i></sub></span> + <span class="k"><i>V<sub>n</sub></i></span> = 0</span><small>3.151</small></div>`,
+  think: ["Panel 1 faces straight upstream, so β₁ = 180°. What is V∞,n there, and what must panel strengths do?", "V∞ cos 180° = −V∞, so the freestream drives flow into the surface. The panels must push flow out, which is why the front panel has a large positive λ."],
+  draw(t) {
+    const r = fullR(), v0 = view(r, 2.6, 1.8), b = CYL8, i = 3;
+    const v1 = view(r, 1.25, .95, b.xc[i] + .1, b.yc[i]), v = lerpView(v0, v1, ss(t, 1, 4));
+    drawBody(v, b);
+    panelSeg(v, b, i, C.source, 4);
+    text("panel 4", v.X(b.X[i] - .02), v.Y(b.Y[i] + .1), { align: "center", color: C.source, weight: 600, halo: true });
+    const cx = v.X(b.xc[i]), cy = v.Y(b.yc[i]), Lw = .8;
+    const a1 = ss(t, 2, 4);
+    g.globalAlpha = a1;
+    arrow(cx, cy, cx + Lw * v.k, cy, C.flow, 3.4, 13);
+    text("V∞", cx + Lw * v.k + 8, cy, { font: MATH(), italic: true, color: C.flow, weight: 500, size: fs(1.2), halo: true });
+    g.strokeStyle = C.muted; g.lineWidth = 1.3; g.setLineDash([5, 5]);
+    g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + 1.0 * v.k * b.nx[i], cy - 1.0 * v.k * b.ny[i]); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = C.source; g.lineWidth = 1.8; g.beginPath(); g.arc(cx, cy, .3 * v.k, -Math.PI / 4, 0); g.stroke();
+    text("β₄ = 45°", cx + .34 * v.k, cy - .13 * v.k, { font: MATH(), italic: true, color: C.source, weight: 500, halo: true });
+    text("n₄", cx + 1.03 * v.k * b.nx[i], cy - 1.03 * v.k * b.ny[i] - 4, { font: MATH(), italic: true, weight: 500, halo: true });
+    g.globalAlpha = 1;
+    const s1 = ss(t, 5, 7), ln = .8 * Math.SQRT1_2;
+    if (s1 > 0) {
+      const nx = b.nx[i], ny = b.ny[i], tx = b.tx[i], ty = b.ty[i];
+      arrow(cx, cy, cx + tx * ln * v.k * s1, cy - ty * ln * v.k * s1, C.muted, 2.6, 10);
+      arrow(cx, cy, cx + nx * ln * v.k * s1, cy - ny * ln * v.k * s1, C.hot, 3.6, 13);
+      g.globalAlpha = s1 * .6; g.strokeStyle = C.muted; g.lineWidth = 1; g.setLineDash([3, 4]);
+      g.beginPath(); g.moveTo(cx + Lw * v.k, cy); g.lineTo(cx + nx * ln * v.k, cy - ny * ln * v.k); g.moveTo(cx + Lw * v.k, cy); g.lineTo(cx + tx * ln * v.k, cy - ty * ln * v.k); g.stroke(); g.setLineDash([]);
+      g.globalAlpha = s1;
+      text("along panel", cx + tx * ln * v.k + 6, cy - ty * ln * v.k + 12, { color: C.muted, weight: 500, halo: true });
+      text("V∞,n", cx + nx * ln * v.k * .55 - 40, cy - ny * ln * v.k * .55 - 12, { font: MATH(), italic: true, color: C.hot, weight: 500, size: fs(1.15), halo: true });
+      g.globalAlpha = 1;
+    }
+    const s2 = ss(t, 15.5, 18.5);
+    if (s2 > 0) {
+      arrow(cx, cy, cx - b.nx[i] * ln * v.k * s2, cy + b.ny[i] * ln * v.k * s2, C.sink, 3.6, 13);
+      g.globalAlpha = s2;
+      text("Vₙ from panels", cx - b.nx[i] * ln * v.k * .6 + 12, cy + b.ny[i] * ln * v.k * .6 + 10, { font: MATH(), italic: true, color: C.sink, weight: 500, size: fs(1.05), halo: true });
+      g.globalAlpha = 1;
+    }
+    cpDot(v, b, i, 6);
+    const lk = ss(t, 10, 11);
+    if (lk > 0) box(W - 12, 12, [["V∞,n = +0.707 V∞", C.hot], ["Vₙ = " + (-.7071 * s2).toFixed(3) + " V∞", C.sink], ["Sum = " + (.7071 * (1 - s2)).toFixed(3) + " V∞", s2 >= 1 ? C.ok : C.ink]], { right: true, alpha: lk });
+  }},
+{ label: "Influence", title: "Every panel affects control point 4", dur: 31,
+  beats: [
+    [0, "Panel 2 is far from control point 4, but it still induces flow there. Add up the effect of each small piece <i>ds</i> along panel 2."],
+    [6.5, "That integral is <i>I</i><sub>4,2</sub> = 0.4018. It uses only distances and angles. No flow information goes in."],
+    [12, "Repeat for each of the other panels. Each gets its own <i>I</i><sub>4,<i>j</i></sub>."],
+    [21, "Panel 4 also acts on its own control point. That term is special: it equals simply λ<sub>4</sub>/2."],
+    [26, "Multiply through by 2π and you have one linear equation in 8 unknowns: Eq. 3.164."]],
+  eq: `<div><span><i>I<sub>i,j</sub></i> = ∫<sub><i>j</i></sub> ∂(ln <i>r<sub>ij</sub></i>)/∂<i>n<sub>i</sub></i> &nbsp;<i>ds<sub>j</sub></i></span><small>3.158</small></div>
+       <div><span><span class="s">λ<sub><i>i</i></sub></span>/2 + Σ<sub><i>j≠i</i></sub> (<span class="s">λ<sub><i>j</i></sub></span>/2π) <i>I<sub>i,j</sub></i> + <i>V</i><sub>∞</sub> cos β<sub><i>i</i></sub> = 0</span><small>3.153</small></div>
+       <div style="white-space:normal"><span>0.4074<span class="s">λ₁</span> + 0.4018<span class="s">λ₂</span> + 0.3528<span class="s">λ₃</span> + π<span class="s">λ₄</span> + 0.3528<span class="s">λ₅</span> + 0.4018<span class="s">λ₆</span> + 0.4074<span class="s">λ₇</span> + 0.4084<span class="s">λ₈</span> = −0.7071 · 2π<i>V</i><sub>∞</sub></span><small>3.164</small></div>`,
+  think: ["If you double V∞, does I₄,₂ change?", "No. I depends only on panel geometry. Doubling V∞ doubles the right side of the equation, and every λ doubles with it."],
+  draw(t) {
+    const [ra, rb] = split(W < 620 ? .5 : .62), b = CYL8, i = 3, v = view(ra, 1.75, 1.55);
+    drawBody(v, b);
+    panelSeg(v, b, i, C.hot, 3.2);
+    nums(v, b, .22);
+    const order = [0, 1, 2, 4, 5, 6, 7];
+    const cx = v.X(b.xc[i]), cy = v.Y(b.yc[i]);
+    let active = -1;
+    const shown = new Set();
+    if (t >= 6.5) shown.add(1);
+    order.forEach((j, q) => { const T = 12 + q * 1.25; if (j !== 1 && t >= T) shown.add(j); if (t >= T && t < T + 1.25) active = j; });
+    if (t < 12) active = 1;
+    if (t >= 21) shown.add(3);
+    /* lines of influence */
+    shown.forEach(j => {
+      if (j === 3) return;
+      g.strokeStyle = C.source; g.globalAlpha = j === active ? .9 : .28; g.lineWidth = j === active ? 2.2 : 1.2;
+      g.beginPath(); g.moveTo(v.X(b.xc[j]), v.Y(b.yc[j])); g.lineTo(cx, cy); g.stroke();
+    });
+    g.globalAlpha = 1;
+    if (active >= 0 && t < 21) panelSeg(v, b, active, C.source, 4);
+    if (t < 6.5) {
+      /* sliding ds */
+      const j = 1, u = ((t * .42) % 1), px = mix(b.X[j], b.X[j + 1], u), py = mix(b.Y[j], b.Y[j + 1], u);
+      g.setLineDash([5, 4]); g.strokeStyle = C.ink; g.lineWidth = 1.4; g.beginPath(); g.moveTo(v.X(px), v.Y(py)); g.lineTo(cx, cy); g.stroke(); g.setLineDash([]);
+      g.fillStyle = C.ink; g.beginPath(); g.arc(v.X(px), v.Y(py), 4.5, 0, 7); g.fill();
+      text("ds₂", v.X(px) - 8, v.Y(py) - 14, { font: MATH(), italic: true, weight: 500, align: "right", halo: true });
+      text("r₄₂", mix(v.X(px), cx, .45), mix(v.Y(py), cy, .45) + 14, { font: MATH(), italic: true, weight: 500, align: "center", halo: true });
+    }
+    if (t >= 21) {
+      const m = ss(t, 21, 22);
+      const nx = b.nx[i], ny = b.ny[i];
+      g.globalAlpha = m;
+      for (let q = -2; q <= 2; q++) {
+        const f = .5 + q * .2, x = mix(b.X[i], b.X[i + 1], f), y = mix(b.Y[i], b.Y[i + 1], f);
+        arrow(v.X(x), v.Y(y), v.X(x + nx * .22), v.Y(y + ny * .22), C.hot, 1.8, 7);
+      }
+      g.globalAlpha = 1;
+    }
+    cpDot(v, b, i, 6);
+    /* table */
+    const rowH = Math.min(rb.h / 11, fs(2)), tx = rb.x + 6, top = rb.y + (rb.h - rowH * 10) / 2;
+    const cA = tx + Math.min(rb.w * .34, 70), cB = rb.x + rb.w - 8;
+    text("panel j", tx, top, { color: C.muted, weight: 500 });
+    text("I₄,ⱼ", cB, top, { align: "right", color: C.muted, font: MATH(), italic: true, weight: 500 });
+    g.strokeStyle = C.line; g.lineWidth = 1; g.beginPath(); g.moveTo(tx, top + rowH * .55); g.lineTo(cB, top + rowH * .55); g.stroke();
+    for (let j = 0; j < 8; j++) {
+      const y = top + rowH * (j + 1);
+      const isAct = j === active || (j === 3 && t >= 21 && t < 26);
+      if (isAct) { g.fillStyle = j === 3 ? C.hot : C.source; g.globalAlpha = .15; g.fillRect(tx - 4, y - rowH / 2, cB - tx + 8, rowH); g.globalAlpha = 1; }
+      text(String(j + 1), tx, y, { font: MONO(), color: shown.has(j) ? C.ink : C.muted });
+      if (shown.has(j)) text(j === 3 ? "π (self, after ×2π)" : I4[j].toFixed(4), cB, y, { align: "right", font: j === 3 ? TXT() : MONO(), color: j === 3 ? C.hot : C.ink, weight: j === 3 ? 500 : 400 });
+      else text("?", cB, y, { align: "right", font: MONO(), color: C.muted });
+    }
+    if (t >= 26) {
+      const y = top + rowH * 9;
+      g.strokeStyle = C.line; g.beginPath(); g.moveTo(tx, y - rowH / 2); g.lineTo(cB, y - rowH / 2); g.stroke();
+      text("right side", tx, y, { color: C.muted, weight: 500 });
+      text("−0.7071 · 2πV∞", cB, y, { align: "right", font: MATH(), italic: true, color: C.flow, weight: 500 });
+    }
+  }},
+{ label: "Equations", title: "One equation per panel gives a matrix", dur: 38,
+  beats: [
+    [0, "The equation we just built for panel 4 becomes row 4 of a matrix."],
+    [6, "Move the control point to each panel in turn and repeat. Each one adds a row."],
+    [17, "Now there are 8 equations and 8 unknowns: <b>A</b> λ = <b>b</b>. The diagonal is π, the term from each panel acting on itself."],
+    [22.5, "<b>A</b> holds only geometry. <span class='f'><b>b</b> holds only the freestream.</span> Change the flow and <b>A</b> stays the same."],
+    [27, "Written out, these are the 8 equations for the cylinder. Every equation contains all 8 unknowns λ<sub>1</sub> to λ<sub>8</sub>."],
+    [32.5, "So no single equation can be solved on its own. All 8 must be solved <b>simultaneously</b>, for example by Gaussian elimination."]],
+  eq: `<div><span>π<span class="s">λ<sub><i>i</i></sub></span> + Σ<sub><i>j≠i</i></sub> <i>I<sub>i,j</sub></i> <span class="s">λ<sub><i>j</i></sub></span> = <span class="f">−2π<i>V</i><sub>∞</sub> cos β<sub><i>i</i></sub></span></span><small>i = 1…8</small></div>
+       ${SYS_HTML}`,
+  think: ["Why is this cylinder's right side zero for panels 3 and 7?", "Their normals point straight up and down, so β = 90° and cos β = 0. The freestream already runs along those panels and does not try to leak through."],
+  draw(t) {
+    const [ra, rb] = W < 620 ? split(.38) : split(.33), b = CYL8, v = view(ra, 1.5, 1.5);
+    const order = [3, 0, 1, 2, 4, 5, 6, 7];
+    let done = 1, cur = 3;
+    if (t >= 6) { const f = clamp((t - 6) / 11 * 7, 0, 7); done = 1 + Math.floor(f + 1e-6); done = Math.min(done, 8); cur = order[Math.min(7, done - 1 + (done < 8 ? 1 : 0))]; if (t >= 17) cur = -1; done = t >= 17 ? 8 : done; }
+    drawBody(v, b); nums(v, b, .24, { m: .95 });
+    const hl = t >= 6 ? cur : 3;
+    if (hl >= 0) {
+      for (let j = 0; j < 8; j++) if (j !== hl) { g.strokeStyle = C.source; g.globalAlpha = .3; g.lineWidth = 1.2; g.beginPath(); g.moveTo(v.X(b.xc[j]), v.Y(b.yc[j])); g.lineTo(v.X(b.xc[hl]), v.Y(b.yc[hl])); g.stroke(); }
+      g.globalAlpha = 1; panelSeg(v, b, hl, C.hot, 3.2); cpDot(v, b, hl, 6);
+    }
+    /* matrix */
+    const filled = new Set(order.slice(0, done));
+    const bw = Math.max(56, rb.w * .15), cw = Math.min((rb.w - bw - 28) / 8, 52), ch = Math.min((rb.h - 44) / 9, 30);
+    const mw = cw * 8 + 26 + bw, x0 = rb.x + Math.max(0, (rb.w - mw) / 2) + 22, y0 = rb.y + Math.max(16, (rb.h - ch * 9) / 2);
+    const size = clamp(cw * .3, 10, 14);
+    for (let j = 0; j < 8; j++) text(`λ${"₁₂₃₄₅₆₇₈"[j]}`, x0 + cw * (j + .5), y0, { align: "center", font: MATH(), italic: true, color: C.source, size: size * 1.1, weight: 500 });
+    text("b/2πV∞", x0 + cw * 8 + 10 + bw / 2, y0, { align: "center", font: MATH(), italic: true, color: C.flow, size: size * 1.02, weight: 500 });
+    const showDiag = ss(t, 17, 18), showGeo = ss(t, 22.5, 23.5);
+    for (let i = 0; i < 8; i++) {
+      const y = y0 + ch * (i + 1);
+      const on = filled.has(i);
+      if (i === hl) { g.fillStyle = C.hot; g.globalAlpha = .13; g.fillRect(x0 - 22, y - ch / 2, mw + 2, ch); g.globalAlpha = 1; }
+      text(String(i + 1), x0 - 14, y, { align: "center", font: MONO(), color: C.muted, size });
+      for (let j = 0; j < 8; j++) {
+        const xx = x0 + cw * (j + .5), val = SOL8.An[i][j] * PI2;
+        if (i === j && showDiag > 0 && on) { g.fillStyle = C.hot; g.globalAlpha = .18 * showDiag; g.fillRect(xx - cw / 2 + 1, y - ch / 2 + 1, cw - 2, ch - 2); g.globalAlpha = 1; }
+        text(on ? (i === j ? "π" : val.toFixed(2)) : "·", xx, y, { align: "center", font: i === j ? MATH() : MONO(), size: i === j ? size * 1.3 : size, color: on ? (showGeo > 0 ? C.muted : C.ink) : C.line, weight: i === j ? 500 : 400 });
+      }
+      const rhs = -Math.cos(Math.atan2(CYL8.ny[i], CYL8.nx[i]));
+      text(on ? rhs.toFixed(4).replace("-0.0000", "0.0000") : "·", x0 + cw * 8 + 10 + bw / 2, y, { align: "center", font: MONO(), color: on ? C.flow : C.line, size, weight: showGeo > 0 ? 500 : 400 });
+    }
+    g.strokeStyle = C.ink; g.lineWidth = 1.3;
+    const ty = y0 + ch * .5, by = y0 + ch * 8.5;
+    [[x0 - 2, 5], [x0 + cw * 8 + 2, -5]].forEach(([x, d]) => { g.beginPath(); g.moveTo(x + d, ty); g.lineTo(x, ty); g.lineTo(x, by); g.lineTo(x + d, by); g.stroke(); });
+    if (showGeo > 0) {
+      g.globalAlpha = showGeo;
+      text("geometry only", x0 + cw * 4, by + 13, { align: "center", color: C.muted, weight: 600, size });
+      text("flow only", x0 + cw * 8 + 10 + bw / 2, by + 13, { align: "center", color: C.flow, weight: 600, size });
+      g.globalAlpha = 1;
+    }
+    const m = ss(t, 27, 28.5);
+    if (m > 0) { g.globalAlpha = m; g.fillStyle = C.stage; g.fillRect(0, 0, W, H); g.globalAlpha = 1; drawSystem(t, m); }
+  }},
+{ label: "Solve", title: "Solve for the strengths and the flow appears", dur: 27,
+  beats: [
+    [0, "With every λ at zero, the air goes through the cylinder. The <span class='h'>arrows</span> show the leak at each control point."],
+    [6, "Now raise all the λ values toward the solution of <b>A</b>λ = <b>b</b>. A real solver gets there in one step. We go slowly so you can watch."],
+    [16.5, "At the solution, the leak is zero at all 8 control points. The surface is now a streamline."],
+    [21.5, "Front panels are <span class='s'>sources</span> and rear panels are <span class='k'>sinks</span>. Check: Σλ<sub><i>j</i></sub><i>S<sub>j</sub></i> = 0, so the body adds no net mass."]],
+  eq: `<div><span>Σ<sub><i>j</i></sub> <span class="s">λ<sub><i>j</i></sub></span> <i>S<sub>j</sub></i> = 0</span><small>3.157, accuracy check</small></div>`,
+  think: ["Why must Σλⱼ Sⱼ equal zero for a closed body?", "Each λⱼSⱼ is the volume flow one panel adds. If the sum were not zero, the solid body would be creating or destroying mass. It is a free check on your code."],
+  draw(t) {
+    const [ra, rb] = split(W < 620 ? .5 : .62), b = CYL8, v = view(ra, 2.9, 2.0);
+    const s = Math.round(ss(t, 6, 16) * 40) / 40;
+    drawFlow(v, lines("s8-" + s, SOL8, s), 1);
+    drawBody(v, b); vinf(v);
+    for (let i = 0; i < 8; i++) {
+      const l = SOL8.lam[i] * s, col = l >= 0 ? C.source : C.sink;
+      g.globalAlpha = .2 + .8 * Math.abs(l) / 2.4;
+      if (Math.abs(l) > 1e-3) panelSeg(v, b, i, col, 5);
+      g.globalAlpha = 1;
+      const leak = (1 - s) * (b.nx[i]), cx = v.X(b.xc[i]), cy = v.Y(b.yc[i]);
+      if (Math.abs(leak) > .004) arrow(cx, cy, cx + b.nx[i] * leak * v.k * .8, cy - b.ny[i] * leak * v.k * .8, C.hot, 3, 10);
+      cpDot(v, b, i, 4.5);
+    }
+    /* table */
+    const rowH = Math.min(rb.h / 11.5, fs(2)), tx = rb.x + 4, cB = rb.x + rb.w - 6, top = rb.y + 16;
+    const barC = mix(tx + 24, cB, .5), barW = (cB - tx) * .13;
+    text("panel", tx, top, { color: C.muted, weight: 500, size: fs(.92) });
+    text("λ/2πV∞", barC, top, { color: C.muted, font: MATH(), italic: true, weight: 500, align: "center", size: fs(.98) });
+    text("book", cB, top, { color: C.muted, align: "right", weight: 500, size: fs(.92) });
+    for (let i = 0; i < 8; i++) {
+      const y = top + rowH * (i + 1), val = SOL8.lam[i] / PI2 * s, col = val >= 0 ? C.source : C.sink;
+      text(String(i + 1), tx + 8, y, { font: MONO(), color: C.muted, align: "center" });
+      g.fillStyle = col; g.globalAlpha = .28;
+      const wbar = val / .3765 * barW; g.fillRect(barC, y - rowH * .36, wbar, rowH * .72); g.globalAlpha = 1;
+      text(val.toFixed(4).replace("-0.0000", "0.0000"), barC, y, { align: "center", font: MONO(), size: fs(.95), color: C.ink });
+      text(s >= 1 ? BOOK[i].toFixed(4) : "", cB, y, { align: "right", font: MONO(), size: fs(.95), color: C.ok });
+    }
+    const y = top + rowH * 9.3;
+    let leakMax = (1 - s);
+    text(`largest leak: ${leakMax.toFixed(3)} V∞`, tx, y, { color: s >= 1 ? C.ok : C.hot, weight: 500 });
+    if (t >= 21.5) text("Σ λⱼ Sⱼ = " + Math.abs(SOL8.sum * s).toFixed(4) + "  ✓", tx, y + rowH, { color: C.ok, weight: 600 });
+  }},
+{ label: "Pressure", title: "From strengths to velocity and pressure", dur: 28,
+  beats: [
+    [0, "No flow goes through the surface now, so the velocity at each control point lies along the panel."],
+    [6, "Add <i>V</i><sub>∞</sub> sin β<sub><i>i</i></sub> and the tangential velocity induced by the other panels. The fastest flow, 2<i>V</i><sub>∞</sub>, is at the top and bottom."],
+    [12, "Bernoulli turns speed into pressure: <i>C<sub>p,i</sub></i> = 1 − (<i>V<sub>i</sub></i>/<i>V</i><sub>∞</sub>)²."],
+    [18, "Compare with exact theory, the curve 1 − 4 sin²θ. Eight panels land right on it."],
+    [23, "Front and back pressure match, so there is no pressure drag. That is d'Alembert's paradox. Real viscous flow separates, and the next section covers it."]],
+  eq: `<div><span><i>V<sub>i</sub></i> = <span class="f"><i>V</i><sub>∞</sub> sin β<sub><i>i</i></sub></span> + Σ<sub><i>j</i></sub> (<span class="s">λ<sub><i>j</i></sub></span>/2π) ∫<sub><i>j</i></sub> ∂(ln <i>r<sub>ij</sub></i>)/∂<i>s</i> &nbsp;<i>ds<sub>j</sub></i></span><small>3.156</small></div>
+       <div><span><i>C<sub>p,i</sub></i> = 1 − (<i>V<sub>i</sub></i>/<i>V</i><sub>∞</sub>)²</span><small>3.38</small></div>
+       <div><span><i>C<sub>p</sub></i> = 1 − 4 sin²θ</span><small>3.101, exact</small></div>`,
+  think: ["Panel 3 has λ = 0, yet it has the fastest flow. How?", "λ₃ = 0 only means panel 3 adds no flow itself. The speed there comes from the freestream plus tangential velocity induced by all the other panels."],
+  draw(t) {
+    const [ra, rb] = split(.46), b = CYL8, v = view(ra, 2.0, 1.75);
+    drawBody(v, b); vinf(v);
+    const m = ss(t, 1, 5);
+    for (let i = 0; i < 8; i++) {
+      const V = SOL8.Vt[i], cx = v.X(b.xc[i] + b.nx[i] * .02), cy = v.Y(b.yc[i] + b.ny[i] * .02), L = V * .36 * v.k * m;
+      arrow(cx, cy, cx + b.tx[i] * L, cy - b.ty[i] * L, C.flow, 3, 10);
+      cpDot(v, b, i, 4);
+      if (t >= 6) text(Math.abs(V).toFixed(2), v.X(b.xc[i] * 1.42), v.Y(b.yc[i] * 1.42), { align: "center", font: MONO(), size: fs(.95), color: C.flow, halo: true, weight: 500 });
+    }
+    if (t >= 6) text("|Vᵢ| / V∞", v.X(0), v.Y(0), { align: "center", font: MATH(), italic: true, weight: 500 });
+    const c = chart(rb, { xr: [0, 360], yr: [-3.4, 1.4], xt: [0, 90, 180, 270, 360], yt: [-3, -2, -1, 0, 1], xu: "°", xl: "θ, from the front, over the top", yl: "Cp" });
+    const ex = ss(t, 18, 20);
+    if (ex > 0) {
+      g.globalAlpha = ex; g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath();
+      for (let d = 0; d <= 360; d += 4) { const x = c.fx(d), y = c.fy(1 - 4 * Math.sin(rad(d)) ** 2); d ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke(); g.globalAlpha = 1;
+      text("exact", c.fx(46), c.fy(-2.5), { color: C.ink, weight: 500, align: "center", halo: true });
+    }
+    for (let i = 0; i < 8; i++) {
+      if (t < 12 + i * .55) continue;
+      const th = i * 45;
+      g.fillStyle = C.hot; g.strokeStyle = C.stage; g.lineWidth = 1.5; g.beginPath(); g.arc(c.fx(th), c.fy(SOL8.Cp[i]), 5.5, 0, 7); g.fill(); g.stroke();
+    }
+    if (t >= 12) text("8 panels", c.fx(148), c.fy(.72), { color: C.hot, weight: 600, align: "right", halo: true });
+  }},
+{ label: "Lift", title: "Vortex panels give lift", dur: 34,
+  beats: [
+    [0, "Source panels have a limit. Tilt this airfoil 6° and solve with sources. Sources add no circulation, so there is no lift. Flow whips around the sharp trailing edge."],
+    [9, "To get lift we need circulation. So place a <span class='v'>vortex</span> flow on each panel, with strength γ in place of λ."],
+    [15, "The recipe is the same: no flow through the surface at every control point. Only the influence integral changes."],
+    [21, "One extra condition is needed. The <b>Kutta condition</b> says flow leaves the sharp trailing edge smoothly, so γ on the two sides cancels there."],
+    [28, "Add up the strengths to get the circulation Γ. Kutta-Joukowski then gives the lift."]],
+  eq: `<div><span><i>V</i><sub>∞</sub> cos β<sub><i>i</i></sub> − Σ<sub><i>j</i></sub> (<span class="v">γ<sub><i>j</i></sub></span>/2π) ∫<sub><i>j</i></sub> ∂θ<sub><i>ij</i></sub>/∂<i>n<sub>i</sub></i> &nbsp;<i>ds<sub>j</sub></i> = 0</span><small>no leak</small></div>
+       <div><span><span class="v">γ</span><sub>upper TE</sub> + <span class="v">γ</span><sub>lower TE</sub> = 0</span><small>Kutta</small></div>
+       <div><span>Γ = Σ<sub><i>j</i></sub> <span class="v">γ<sub><i>j</i></sub></span> <i>S<sub>j</sub></i>, &nbsp; <i>L′</i> = ρ<sub>∞</sub><i>V</i><sub>∞</sub>Γ, &nbsp; <i>c<sub>l</sub></i> = 2Γ/(<i>V</i><sub>∞</sub><i>c</i>)</span><small>lift</small></div>`,
+  think: ["What is cₗ for a symmetric airfoil at α = 0?", "Zero. The top and bottom strengths are mirror images and cancel, so Γ = 0. Try it in the next step with NACA 0012."],
+  draw(t) {
+    const r = fullR(), b = FOIL80, v = view(r, 3.2, 2.0, .1, 0);
+    const m = ss(t, 22, 25), vz = ss(t, 9, 11);
+    drawFlow(v, lines("src9", SRC9), (1 - m) * (1 - .55 * vz * (1 - m)));
+    drawFlow(v, lines("vor9", VOR9), m);
+    drawBody(v, b, { stroke: vz > .5 ? C.vortex : C.ink });
+    vinf(v, A9);
+    if (vz > 0) {
+      g.globalAlpha = vz * .95;
+      for (let i = 4; i < b.n; i += 8) {
+        const x = v.X(b.xc[i] + b.nx[i] * .2), y = v.Y(b.yc[i] + b.ny[i] * .2);
+        curl(x, y, Math.max(7, v.k * .07), C.vortex);
+      }
+      g.globalAlpha = 1;
+    }
+    const te = [v.X(1.5), v.Y(0)];
+    if (t < 21) {
+      /* rear stagnation on the upper surface for the source solution */
+      const Vt = SRC9.Vt; let k = b.n - 1; while (k > b.n / 2 && Vt[k] < 0) k--;
+      const sx = v.X(b.xc[k]), sy = v.Y(b.yc[k]);
+      g.fillStyle = C.hot; g.strokeStyle = C.stage; g.lineWidth = 1.5; g.beginPath(); g.arc(sx, sy, 5.5, 0, 7); g.fill(); g.stroke();
+      text("rear stagnation point, on top", sx - 8, sy - 26, { color: C.hot, weight: 600, align: "right", halo: true });
+      g.strokeStyle = C.hot; g.lineWidth = 2; g.beginPath(); g.arc(te[0], te[1], 12, 0, 7); g.stroke();
+      text("flow wraps around the edge", te[0] + 2, te[1] + 28, { color: C.hot, weight: 600, align: "center", halo: true });
+    } else {
+      const ok = m;
+      g.globalAlpha = ok; g.strokeStyle = C.ok; g.lineWidth = 2; g.beginPath(); g.arc(te[0], te[1], 12, 0, 7); g.stroke();
+      text("smooth exit at trailing edge", te[0], te[1] + 28, { color: C.ok, weight: 600, align: "center", halo: true });
+      g.globalAlpha = 1;
+    }
+    const sh = ss(t, 28, 29.5);
+    box(W - 12, 12, t >= 28 ? [["α = 6°", C.ink], ["Γ/(V∞c) = " + (VOR9.Gamma / 3).toFixed(3), C.vortex], ["cₗ = " + VOR9.cl.toFixed(3), C.vortex]] : [["α = 6°", C.ink], [m > .5 ? "Vortex panels" : "Source panels: cₗ = 0", m > .5 ? C.vortex : C.source]], { right: true });
+    if (sh > 0) {
+      g.globalAlpha = sh;
+      g.strokeStyle = C.vortex; g.lineWidth = 3; g.beginPath(); g.ellipse(v.X(0), v.Y(0), 1.9 * v.k, .68 * v.k, 0, .55, 2.6); g.stroke();
+      const e = 2.6, hx = v.X(0) + 1.9 * v.k * Math.cos(e), hy = v.Y(0) + .68 * v.k * Math.sin(e);
+      arrow(hx + 8, hy + 3, hx - 2, hy - 2, C.vortex, 3, 11);
+      text("Γ", v.X(0), v.Y(-.8), { font: MATH(), italic: true, color: C.vortex, weight: 500, size: fs(1.5), align: "center", halo: true });
+      const up = v.k * .75 * sh;
+      arrow(v.X(-.2), v.Y(.15), v.X(-.2), v.Y(.15) - up, C.ok, 4, 14);
+      text("lift", v.X(-.2) + 10, v.Y(.15) - up + 6, { color: C.ok, weight: 600, halo: true });
+      g.globalAlpha = 1;
+    }
+  }},
+{ label: "Try it", title: "Run your own panel solution", free: true, dur: 1,
+  beats: [],
+  eq: `<div style="white-space:normal;font-family:var(--text);font-size:15px"><ol class="recipe">
+    <li>Divide the surface into panels.</li><li>Mark a control point and normal on each.</li>
+    <li>Compute influence of every panel on every control point.</li><li>Set the normal velocity to zero and solve for strengths.</li>
+    <li>Find surface velocity, then <i>C<sub>p</sub></i>.</li></ol></div>`,
+  think: ["Experiments to run", "Cylinder: compare 4 and 40 panels. NACA 0012 at α = 5°: cₗ is near 0.60, a bit above thin airfoil theory's 2πα = 0.55, because of thickness. NACA 2412 at α = 0°: cₗ is near 0.26, lift from camber alone. Source panels at any angle: watch the rear stagnation point move away from the trailing edge."],
+  draw(t) {
+    const st = lab();
+    const [ra, rb] = split(.6), v = view(ra, 3.2, st.isCyl ? 2.1 : 2.0);
+    drawFlow(v, st.ls, 1, st.sol.kind === "vor" ? C.flow : C.flow);
+    drawBody(v, st.b, { stroke: st.sol.kind === "vor" ? C.vortex : C.ink, w: 1.3 });
+    vinf(v, st.a);
+    if (st.b.n <= 40) for (let i = 0; i < st.b.n; i++) cpDot(v, st.b, i, st.b.n > 24 ? 2.2 : 3.2);
+    if (st.isCyl) {
+      const c = chart(rb, { xr: [0, 360], yr: [-3.4, 1.4], xt: [0, 90, 180, 270, 360], yt: [-3, -2, -1, 0, 1], xu: "°", xl: "θ from the front, clockwise", yl: "Cp" });
+      if (st.a === 0) {
+        g.strokeStyle = C.ink; g.lineWidth = 1.8; g.beginPath();
+        for (let d = 0; d <= 360; d += 4) { const x = c.fx(d), y = c.fy(1 - 4 * Math.sin(rad(d)) ** 2); d ? g.lineTo(x, y) : g.moveTo(x, y); }
+        g.stroke();
+      }
+      st.b.xc.forEach((_, i) => { const th = ((180 - Math.atan2(st.b.yc[i], st.b.xc[i]) * 180 / Math.PI) % 360 + 360) % 360; const yy = clamp(st.sol.Cp[i], -3.4, 1.4); g.fillStyle = C.hot; g.beginPath(); g.arc(c.fx(th), c.fy(yy), st.b.n > 40 ? 2.5 : 4, 0, 7); g.fill(); });
+    } else {
+      let lo = 1, hi = -1; st.sol.Cp.forEach(p => { lo = Math.min(lo, p); });
+      lo = Math.max(lo, -9); const f = Math.floor(lo) - .3;
+      const ticks = []; const step = f < -6 ? 2 : 1; for (let y = Math.ceil(f); y <= 1; y += step) ticks.push(y);
+      const c = chart(rb, { xr: [0, 1], yr: [f, 1.3], inv: true, xt: [0, .25, .5, .75, 1], yt: ticks, xl: "x/c along the chord", yl: "Cp (negative up)" });
+      const xmin = st.b.airfoil ? -1.5 : -1.5, xs = 3;
+      const up = [], low = [];
+      st.b.xc.forEach((x, i) => { (st.b.nx[i] * 0 + st.b.tx[i] > 0 ? up : low).push([(x - xmin) / xs, st.sol.Cp[i]]); });
+      [[up, C.flow], [low, C.source]].forEach(([arr, col]) => {
+        arr.sort((a, b) => a[0] - b[0]);
+        g.strokeStyle = col; g.lineWidth = 1.8; g.beginPath(); arr.forEach((p, i) => { const x = c.fx(p[0]), y = c.fy(clamp(p[1], f, 1.3)); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke();
+        g.fillStyle = col; arr.forEach(p => { g.beginPath(); g.arc(c.fx(p[0]), c.fy(clamp(p[1], f, 1.3)), 2.6, 0, 7); g.fill(); });
+      });
+      text("upper", c.R - 44, c.T + 12, { color: C.flow, weight: 600 });
+      text("lower", c.R - 44, c.T + 30, { color: C.source, weight: 600 });
+    }
+  }},
+];
+
+/* ---------- sandbox ---------- */
+const $ = id => document.getElementById(id);
+let labCache = {};
+function lab() {
+  const shape = $("shape").value, method = $("method").value;
+  let n = +$("pn").value; const a = +$("pa").value;
+  const isCyl = shape === "cyl";
+  if (!isCyl && shape !== "ell" && n < 10) n = 10;
+  const key = [shape, method, n, a].join("|");
+  if (labCache.key === key) return labCache;
+  const b = shape === "cyl" ? ellipse(n, 1, 1) : shape === "ell" ? ellipse(n, 1.5, .5) : shape === "0012" ? naca(n, 0, .4, .12) : naca(n, .02, .4, .12);
+  const sol = method === "vor" ? solveVortex(b, a) : solveSource(b, a);
+  labCache = { key, b, sol, a, isCyl, ls: lines("lab" + key, sol) };
+  $("pnO").textContent = n; $("paO").textContent = a + "°";
+  const rows = [];
+  if (method === "vor") {
+    rows.push(["Lift coefficient cₗ", sol.cl.toFixed(3)], ["Circulation Γ/(V∞c)", (sol.Gamma / b.chord).toFixed(3)]);
+  } else {
+    rows.push(["Lift coefficient cₗ", "0 (no Γ)"], ["Σλⱼ Sⱼ / V∞", Math.abs(sol.sum).toFixed(4)]);
+  }
+  rows.push(["Peak surface speed", Math.max(...sol.Vt.map(Math.abs)).toFixed(2) + " V∞"], ["Minimum Cp", Math.min(...sol.Cp).toFixed(2)]);
+  $("rd").innerHTML = rows.map(r => `<div><span>${r[0]}</span><strong>${r[1]}</strong></div>`).join("");
+  return labCache;
+}
+function syncLab() {
+  const vor = $("method").value === "vor", sel = $("shape");
+  [...sel.options].forEach(o => { if (o.value === "cyl" || o.value === "ell") o.disabled = vor; });
+  if (vor && (sel.value === "cyl" || sel.value === "ell")) sel.value = "0012";
+  $("labHint").textContent = vor
+    ? "Vortex panels need a sharp trailing edge for the Kutta condition, so the cylinder and ellipse are off."
+    : "Source panels give the right pressure for non-lifting cases. At an angle, they still carry no circulation.";
+}
+["shape", "method", "pn", "pa"].forEach(id => $(id).addEventListener("input", () => { syncLab(); lab(); }));
+
+/* ---------- player ---------- */
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let cur = 0, T = 0, playing = false, hold = 0, last = performance.now();
+const nav = $("nav");
+STEPS.forEach((s, i) => { const b = document.createElement("button"); b.type = "button"; b.innerHTML = `<b>${i + 1}</b>${s.label}`; b.onclick = () => go(i, true); nav.append(b); });
+function strip(h) { const d = document.createElement("div"); d.innerHTML = h; return d.textContent; }
+function renderNotes() {
+  const s = STEPS[cur];
+  $("count").textContent = `STEP ${cur + 1} OF ${STEPS.length}`;
+  $("stitle").textContent = s.title;
+  $("eq").innerHTML = s.eq;
+  $("thinkQ").textContent = s.free ? s.think[0] : "Pause and think: " + s.think[0];
+  $("thinkA").textContent = s.think[1];
+  $("think").open = !!s.free;
+  $("beats").hidden = !!s.free;
+  $("lab").hidden = !s.free;
+  $("beats").innerHTML = s.beats.map((b, i) => `<li><button type="button" data-i="${i}">${b[1]}</button></li>`).join("");
+  $("beats").querySelectorAll("button").forEach(btn => btn.onclick = () => { T = s.beats[+btn.dataset.i][0] + .01; hold = 0; paint(); });
+  [...nav.children].forEach((b, i) => { b.className = (i === cur ? "on" : i < cur ? "done" : ""); });
+  { const el = nav.children[cur]; nav.scrollLeft = el.offsetLeft - nav.offsetLeft - (nav.clientWidth - el.offsetWidth) / 2; }
+  cv.setAttribute("aria-label", "Animation for step " + (cur + 1) + ": " + s.title);
+  $("scrub").disabled = !!s.free; $("play").disabled = !!s.free; $("speed").disabled = !!s.free;
+  $("play").style.opacity = s.free ? .5 : 1; $("scrub").style.opacity = s.free ? .4 : 1;
+  $("next").disabled = cur === STEPS.length - 1; $("prev").disabled = cur === 0;
+  $("next").style.opacity = cur === STEPS.length - 1 ? .5 : 1; $("prev").style.opacity = cur === 0 ? .5 : 1;
+  lastBeat = -1;
+}
+let lastBeat = -1;
+function paint() {
+  const s = STEPS[cur];
+  if (!s.free) {
+    $("scrub").value = Math.round(T / s.dur * 1000);
+    let k = 0; s.beats.forEach((b, i) => { if (T >= b[0]) k = i; });
+    if (k !== lastBeat) {
+      lastBeat = k;
+      $("beats").querySelectorAll("button").forEach((b, i) => b.className = i < k ? "past" : i === k ? "now" : "");
+      $("live").textContent = strip(s.beats[k][1]);
+    }
+  }
+  $("play").textContent = playing ? "Pause" : (T >= s.dur && !s.free ? "Replay" : "Play");
+  draw();
+}
+function draw() {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = C.stage; g.fillRect(0, 0, W, H + STRIP);
+  g.textBaseline = "middle"; g.globalAlpha = 1;
+  STEPS[cur].draw(T);
+  g.globalAlpha = 1; drawCredit();
+}
+function go(i, user) {
+  i = clamp(i, 0, STEPS.length - 1);
+  cur = i; hold = 0;
+  T = reduced && !STEPS[i].free ? STEPS[i].dur : 0;
+  renderNotes();
+  if (STEPS[i].free) { syncLab(); lab(); }
+  try { if (location.hash !== "#step-" + (i + 1)) location.hash = "step-" + (i + 1); } catch (e) {}
+  if (user && !reduced) playing = true;
+  if (STEPS[i].free) playing = false;
+  paint();
+}
+function toggle() {
+  const s = STEPS[cur]; if (s.free) return;
+  if (!playing && T >= s.dur) T = 0;
+  playing = !playing; hold = 0; last = performance.now(); paint();
+}
+$("play").onclick = toggle;
+$("prev").onclick = () => go(cur - 1, true);
+$("next").onclick = () => go(cur + 1, true);
+$("scrub").oninput = e => { T = +e.target.value / 1000 * STEPS[cur].dur; playing = false; paint(); };
+addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "select") return;
+  if (e.code === "Space" && tag !== "button" && tag !== "summary") { e.preventDefault(); toggle(); }
+  if (e.code === "ArrowRight") go(cur + 1, true);
+  if (e.code === "ArrowLeft") go(cur - 1, true);
+});
+addEventListener("hashchange", () => { const m = /step-(\d+)/.exec(location.hash); if (m && +m[1] - 1 !== cur) go(+m[1] - 1, true); });
+
+let dpr = 1;
+function resize() {
+  const box = $("stageBox"), w = box.clientWidth;
+  const narrow = w < 620;
+  const h = narrow ? Math.round(w * 1.3) : Math.round(Math.min(w * .64, Math.max(400, innerHeight - 200)));
+  box.style.height = (h + STRIP) + "px";
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.round(w * dpr); cv.height = Math.round((h + STRIP) * dpr);
+  W = w; H = h;
+  if (typeof draw === "function") draw();
+}
+new ResizeObserver(resize).observe($("stageBox").parentElement);
+const recolor = () => { readColors(); if (W) draw(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", recolor);
+new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => draw());
+
+function frame(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  const s = STEPS[cur], speed = +$("speed").value;
+  if (!document.hidden) {
+    if (!reduced && (playing || s.free)) flowClock += dt * .95 * (s.free ? 1 : speed);
+    if (playing && !s.free) {
+      T += dt * speed;
+      if (T >= s.dur) {
+        T = s.dur;
+        if ($("auto").checked && cur < STEPS.length - 1) { hold += dt; if (hold > 1.6) { go(cur + 1, false); } }
+        else playing = false;
+      }
+      paint();
+    } else if (s.free) { draw(); }
+  }
+  requestAnimationFrame(frame);
+}
+readColors();
+resize();
+{
+  const m = /step-(\d+)/.exec(location.hash);
+  cur = m ? clamp(+m[1] - 1, 0, STEPS.length - 1) : 0;
+  T = reduced && !STEPS[cur].free ? STEPS[cur].dur : 0;
+  renderNotes();
+  if (STEPS[cur].free) { syncLab(); lab(); }
+  /* first frame already shows flow, then the lesson plays on its own */
+  flowClock = .4;
+  playing = !reduced && !STEPS[cur].free;
+  paint();
+  requestAnimationFrame(frame);
+}
+</script>
+
+</body></html>
