@@ -37,7 +37,10 @@ and the table of source strengths.
 - Space plays or pauses; the left and right arrow keys change step.
 - Link directly to a step by adding `#step-N` to the address, for example
   `.../#step-6` opens the 8 simultaneous equations.
-- The page works in any modern browser, on a projector, laptop or phone, in light or dark mode.
+- The page works in any modern browser (Safari on iOS/iPadOS 13.4 or later, Chrome, Edge, Firefox) on a
+  projector, laptop, tablet or phone, in portrait or landscape and in light or dark mode.
+- On a phone or tablet, swipe the animation left or right to change step and tap it to pause or play.
+  While the lecture plays, the screen is kept awake on devices that support it.
 - To run it offline, download `index.html` and open it in a browser.
 
 ## Source
